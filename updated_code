@@ -1,0 +1,195 @@
+import pandas as pd
+import numpy as np
+import shutil
+import os
+import glob
+path = "/Users/mravikumar/Desktop/D93632"
+filenames = glob.glob( path + "/*.csv")
+#print('File names:', filenames)
+df4 = pd.DataFrame(columns=['PenId', 'Cube', 'IsSelected', 'MedianBrightness', 'MeanBrightness', 'MedianBackgroundBrightness', 'MeanBackgroundBrightness', 'CentroidXMicrons', 'CentroidYMicrons', 'TimeLapseIndex'])
+for f in filenames:
+    df = pd.read_csv(f)
+    df2=df.drop(['DeviceId', 'TrackingId','TrackingIdPerPen', 'Objective', 'Label', 'PerimeterMicrons', 'AreaMicrons', 'Circularity', 'MajorAxisMicrons', 'MinorAxisMicrons', 'MaxBrightness', 'MinBrightness', 'BackgroundAreaMicrons', 'CentroidXMicronsPenRelative', 'CentroidYMicronsPenRelative', 'GatePath', 'FluidChannelNumber', 'Timestamp', 'CellCount', 'CellsInPen', 'TargetsInPen','MaxBackgroundBrightness', 'MinBackgroundBrightness', 'CentroidXPixels', 'CentroidYPixels','MachineName','Username'], axis=1)
+    #df2=df2.assign(filename=f)
+    df4 = pd.concat([df4,df2],axis=0)
+df4 = df4.assign(delta_MedianBrightness= df4['MedianBrightness'] - df4['MedianBackgroundBrightness'])
+conditions = [((df4['delta_MedianBrightness'] > 3400) & (df4['Cube'] == "FITC")),((df4['delta_MedianBrightness'] < 3400) & (df4['Cube'] == "FITC"))]
+values=['Target','Effector']
+df4['cell_type']= np.select(conditions,values)
+#df4 = df4[df4.Cube.str.contains("FITC")]  
+df4=df4.loc[df4['IsSelected']!= False] 
+# locating one target two effectors and finding a list where one effector died.
+Penlist2 = pd.read_csv("/Users/mravikumar/Desktop/singlecells_93608.csv")
+q2 = Penlist2["T2E93632"].dropna().tolist()
+#list=data['abc'].dropna().unique().tolist()
+len(q2)
+df32 = df4[df4['PenId'].isin(q2)]
+
+DAPI_TE = df32.loc[df32['Cube'].isin(['DAPI','FITC'])]
+
+DAPI_TE['cell_type'] = DAPI_TE['cell_type'].replace(to_replace='0', method='bfill')
+DAPI_TE1 = DAPI_TE.loc[DAPI_TE['Cube'] == "DAPI"]
+DAPI_TE2 = DAPI_TE1.loc[DAPI_TE1['TimeLapseIndex'] == 0]
+z = DAPI_TE2.groupby(['PenId']).size().to_dict()
+y = [k for k, v in z.items() if v == 3]
+
+df33= DAPI_TE1[DAPI_TE1['PenId'].isin(y)]
+
+#seperating the data into effectors and target data
+
+DAPI_T=df33.loc[df33['cell_type'] == 'Target']
+DAPI_E=df33.loc[df33['cell_type'] == 'Effector']
+
+#Removing the died target from list 
+
+DAPI_Targets=DAPI_T.loc[DAPI_T['MedianBrightness'] >= 6390]
+
+DT = DAPI_Targets['PenId'].unique().tolist()
+df333= df33[~df33['PenId'].isin(DT)]
+#DAPI_Effectors=df333.loc[df333['MedianBrightness'] >= 6390]
+
+final= df333.filter(['PenId','TimeLapseIndex','cell_type','MedianBrightness'], axis=1)
+final1= final.loc[final['cell_type']=='Effector']
+final2 = final1.drop_duplicates().sort_values(['PenId', 'TimeLapseIndex'])
+
+def has_unique_time_above_6390(group):
+    # select the rows with MedianBrightness above 6390
+    above_6390 = group[group['MedianBrightness'] >= 6390]
+    if above_6390.empty:
+        return False
+    # check if there are any repeated time points with MedianBrightness above 6390
+    if above_6390.duplicated(subset=['TimeLapseIndex']).any():
+        return False
+    # check if there is at least one time point with MedianBrightness above 6390
+    if above_6390[above_6390['MedianBrightness'] >= 6390].empty:
+        return False
+    return True
+
+result = final2.groupby('PenId').apply(has_unique_time_above_6390)
+result_1T2E = result[result].index.tolist()
+print(result_1T2E)
+
+# add two results to find the new analysable df:
+
+analysable_pens= result_1T1E+result_1T2E
+df5= df4[df4['PenId'].isin(analysable_pens)]
+
+#locate Pe and Fitc from the analysable pens to get target and effctor placed for PE fiels to work 
+
+df6 = df5.loc[df5['Cube'].isin(['PE','FITC'])]
+df6['cell_type'] = df6['cell_type'].replace(to_replace='0', method='ffill')
+
+df7=df6.loc[df6['Cube'] == "PE"]
+df8=df7.loc[df7['cell_type'] == 'Target']
+conditions = [(df8['MedianBrightness'] >= 500),(df8['MedianBrightness'] < 500)]
+values=['killed','not_killed']
+df8['caspase_T']= np.select(conditions,values)
+df9=df7.loc[df7['cell_type'] == 'Effector']
+conditions = [(df9['MedianBrightness'] >= 500),(df9['MedianBrightness'] < 500)]
+values=['killed','not_killed']
+df9['caspase_E']= np.select(conditions,values)
+
+#df8==Target,df9==Effector 
+df8 = df8.rename(columns={'CentroidXMicrons': 'x1', 'CentroidYMicrons': 'y1', 'DiameterMicrons':'d1'})
+df9 = df9.rename(columns={'CentroidXMicrons': 'x2', 'CentroidYMicrons': 'y2', 'DiameterMicrons':'d2'})
+
+df10 = pd.merge(df9[['PenId','x2','y2','d2','View','TimeLapseIndex','cell_type','MedianBrightness','caspase_E']], 
+                df8[['PenId','x1','y1','d1','View','TimeLapseIndex','cell_type','MedianBrightness','caspase_T']],
+                on=['PenId','TimeLapseIndex'], how='outer')
+df10= df10.drop_duplicates()
+df10['distance'] = np.sqrt((df10.x2 - df10.x1) ** 2 + (df10.y2  - df10.y1 ) ** 2)
+df10['size']= (df10.d1+df10.d2)
+def label_synap (row):
+     if row['distance'] > row['size'] :
+        return 'no_synapse'
+     return 'synapse'
+df10['synap_nosynap'] = df10.apply(lambda row: label_synap(row), axis=1)
+#df10.to_csv('/Users/mravikumar/Desktop/results_93632/Distance_93632.csv')
+
+
+dfsynapsetimes = df10.loc[df10['synap_nosynap']== 'synapse']
+
+dfsynapsetimes['View_x'] = dfsynapsetimes['View_x'].combine_first(dfsynapsetimes['View_y'])
+dfsynapsetimes1 = dfsynapsetimes.rename(columns={'TimeLapseIndex': 'Synapse_Time','View_x': 'View'})
+
+dfsynapsetimes2 = dfsynapsetimes1.groupby('PenId').agg({'Synapse_Time':'min','View':'first'})
+
+dfsynapsetimes2 = dfsynapsetimes2.reset_index()
+
+#Synapsepens- list of pens which has two consequtive synapse formation for the first time point
+
+SynapsePens= dfsynapsetimes2['PenId'].tolist()
+
+#Target_killed
+
+# Read the DataFrame where it contains target death
+#... to get a df contains all the target death at the first time point
+
+
+KilledT = df8.loc[df8['caspase_T']== 'killed']
+Killed_Target1= KilledT.groupby('PenId').agg({'TimeLapseIndex':'min','View':'first'})
+Killed_Target1 = Killed_Target1.rename(columns={'TimeLapseIndex': 'Target_Time'})
+Killed_Target1 = Killed_Target1.reset_index()
+KilledTpens=Killed_Target1['PenId'].tolist()
+
+#... to get a df contains all the effector death at the first time point
+
+
+KilledE = df9.loc[df9['caspase_E']== 'killed']
+Killed_Effector1= KilledE.groupby('PenId').agg({'TimeLapseIndex':'min','View':'first'})
+Killed_Effector1 = Killed_Effector1.rename(columns={'TimeLapseIndex': 'Effector_Time'})
+Killed_Effector1 = Killed_Effector1.reset_index()
+#Killed_Effector1.to_csv('/Users/mravikumar/Desktop/D93632_results/Effector_Killed_93632.csv')
+KilledEpens=Killed_Effector1['PenId'].tolist()
+len(KilledEpens)
+
+synap_target = pd.merge(Killed_Target1, dfsynapsetimes2, on=['PenId','View'], how='inner')
+synap_target = synap_target.reset_index()
+
+
+#assigning time taken to find the difference between the effector death and target death
+#assinning a column to find the time taken in hours
+
+synap_target = synap_target.assign(TimeTaken= synap_target['Target_Time'] - synap_target['Synapse_Time'])
+synap_target = synap_target.assign(TimeHours= synap_target['TimeTaken']*15/60)
+
+
+#Selecting only those pens where the time taken in hours is positive value 
+#which means Synapse before the target died
+
+synap_target_1 =synap_target[synap_target['TimeTaken']>= 1]
+
+#converting all the pens from the synap followed y target death to a list
+
+synap_target_list=synap_target_1 ['PenId'].tolist()
+len(synap_target_list)
+
+effector_target = pd.merge(Killed_Target1,Killed_Effector1, on=['PenId','View'], how='inner')
+
+#assigning time taken to find the difference between the effector death and target death
+effector_target = effector_target.assign(TimeTaken= effector_target['Effector_Time'] - effector_target['Target_Time'])
+
+#assinning a column to find the time taken in hours
+effector_target = effector_target.assign(TimeHours= effector_target['TimeTaken']*15/60)
+
+
+#Selecting only those pens where the time taken in hours is negative value 
+#which means effector died before the target
+
+effectorb4_targetdeath=effector_target[effector_target['TimeTaken']< 1]
+
+#############converting all pens where effector died before target into a list to remove it from the synapse 
+##########and target died list
+
+effectorb4_targetdeath_list=effectorb4_targetdeath['PenId'].tolist()
+
+set_1 = set(synap_target_list)
+set_2 = set(effectorb4_targetdeath_list)
+
+only_in_1 = set_1.difference(set_2)
+
+
+print("Pens only in synaptarget_list:", only_in_1)
+
+Finaldf = synap_target_1[synap_target_1['PenId'].isin(only_in_1)]
+Finaldf
