@@ -193,3 +193,125 @@ print("Pens only in synaptarget_list:", only_in_1)
 
 Finaldf = synap_target_1[synap_target_1['PenId'].isin(only_in_1)]
 Finaldf
+
+
+# creating a csv file to get true for the fast,medium ,slow killers for each pen- to concetenate this with the phenotype file to get a df
+
+import csv
+
+# create a list with some values
+my_list = No_killing
+
+# open a CSV file for writing
+with open('/Users/mravikumar/Desktop/nokilling23.csv', 'w', newline='') as file:
+    writer = csv.writer(file)
+       
+    # write the header row
+    writer.writerow(['PenId', 'Transfer'])
+
+
+    # write each value from the list as a separate row
+    for value in my_list:
+        writer.writerow([value, ''])
+        
+#getting Phenotypes:
+
+DAPI_TE = df4.loc[df4['Cube'].isin(['DAPI','FITC'])]
+
+DAPI_TE['cell_type'] = DAPI_TE['cell_type'].replace(to_replace='0', method='bfill')
+DAPI_TE1 = DAPI_TE.loc[DAPI_TE['Cube'] == "DAPI"]
+
+
+
+#seperating the data into effectors and target data
+
+DAPI_T=DAPI_TE1.loc[DAPI_TE1['cell_type'] == 'Target']
+DAPI_E=DAPI_TE1.loc[DAPI_TE1['cell_type'] == 'Effector']
+
+Analysable_pens= result_1T1E+result_1T2E
+df5= DAPI_E[DAPI_E['PenId'].isin(Analysable_pens)]
+
+conditions = [(df5['MedianBrightness'] >= 4000),(df5['MedianBrightness'] < 4000)]
+values=['CD8','CD8-ve']
+df5['Pheno']= np.select(conditions,values)
+
+conditions = [(df5['MedianBrightness'] >= 4000),(df5['MedianBrightness'] < 4000)]
+values=['CD8','CD8-ve']
+df5['Pheno']= np.select(conditions,values)
+
+df6= df5.filter(['PenId', 'Cube','cell_type','MedianBrightness','Pheno'], axis=1)
+df6
+       
+#merging both phenotype and killing data
+
+import pandas as pd
+import numpy as np
+#reading Csv file
+df1 = pd.read_csv("/Users/mravikumar/Desktop/killerstime46.csv")
+df2 =pd.read_csv("/Users/mravikumar/Desktop/pheno_46.csv")
+
+df1=df1.drop(['Unnamed: 0'], axis=1)
+
+
+#df2=df2.drop(['Unnamed: 0'], axis=1)
+
+# group the DataFrame by ID and get the maximum value of the Brightness column
+max_brightness = df2.groupby('PenId')['MedianBrightness'].max()
+
+# create a new DataFrame with the maximum brightness for each ID
+new_df2 = pd.DataFrame({'PenId': max_brightness.index, 'MedianBrightness': max_brightness.values})
+
+df3 = pd.merge(df2, new_df2, on=['PenId', 'MedianBrightness'])
+
+
+#merging pheno with the killing times
+
+df4 = pd.merge(df1, df3, on=['PenId'])
+
+df4o = pd.merge(df1, df3, on=['PenId'], how='outer')
+
+# creating different dfs with fast slow and medium and with thier pheno
+
+dfo_fast = df4o.loc[df4o['Fast'] == True, ['PenId', 'Pheno']]
+dfo_slow = df4o.loc[df4o['Slow'] == True, ['PenId', 'Pheno']]
+dfo_medium = df4o.loc[df4o['Medium'] == True, ['PenId', 'Pheno']]
+#df_undeter = df4o.loc[pd.isna(df4o['Pheno']), ['PenId']]
+
+# dfo_fast.to_csv('/Users/mravikumar/Desktop/results_93633/fast_46.csv')
+# dfo_slow.to_csv('/Users/mravikumar/Desktop/results_93633/slow_46.csv')
+# dfo_medium.to_csv('/Users/mravikumar/Desktop/results_93633/medium_46.csv')
+
+#cd8 =(dfo_medium['Pheno'].value_counts()['CD8'])
+nocd8 =(dfo_medium['Pheno'].value_counts()['CD8-ve'])
+undeterm = dfo_medium.loc[pd.isna(dfo_medium['Pheno']), ['PenId']]
+undeter_count = undeterm.shape[0]
+#print('cd8_m:', cd8)
+print('cd8-ve_m:', nocd8)
+print("Undeter_m:", undeter_count)
+
+cd8 =(dfo_fast['Pheno'].value_counts()['CD8'])
+nocd8 =(dfo_fast['Pheno'].value_counts()['CD8-ve'])
+undeterf = dfo_fast.loc[pd.isna(dfo_fast['Pheno']), ['PenId']]
+undeter_count = undeterf.shape[0]
+print('cd8_f:', cd8)
+print('cd8-ve_f:', nocd8)
+print("Undeter_f:", undeter_count)
+
+#cd8 =(dfo_slow['Pheno'].value_counts()['CD8'])
+#nocd8 =(dfo_slow['Pheno'].value_counts()['CD8-ve'])
+undeters = dfo_slow.loc[pd.isna(dfo_slow['Pheno']), ['PenId']]
+undeter_count = undeters.shape[0]
+#print('cd8_s:', cd8)
+#print('cd8-ve_s:', nocd8)
+print("Undeter_s:", undeter_count)
+
+dfN =pd.read_csv("/Users/mravikumar/Desktop/nokilling33.csv")
+df_Nocyt = pd.merge(df2, dfN, on=['PenId'])
+df_Nocyt
+
+cd8 =(df_Nocyt['Pheno'].value_counts()['CD8'])
+nocd8 =(df_Nocyt['Pheno'].value_counts()['CD8-ve'])
+
+print('cd8_n:', cd8)
+print('cd8-ve_n:', nocd8)
+
