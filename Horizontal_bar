@@ -1,21 +1,58 @@
 Horizontal_bar_cytotoxity for subjects
 
 
-import plotly.graph_objects as go
+#*********graph
+
+
+import plotly.graph_objs as go
+import pandas as pd
+
+df3= pd.DataFrame({
+    'Subject13':[20, 5, 17,62],
+    'Subject9':[14,11,14,85],
+    'Subject6':[69,17,5,70],
+    'Subject1':[3,1,0,4],
+    'Time':['5h or Sooner', 'Between 5h and 10h', 'Above 10h','No Cytotoxicity']
+})
+
+df3_perc = df3.set_index('Time')
+df3_perc = (df3_perc.div(df3_perc.sum(axis=0), axis=1) * 100).reset_index().round(1)
+
+
+# Unpivot the data
+df_melted = df3_perc.melt(id_vars=['Time'], value_vars=['Subject13', 'Subject9', 'Subject6','Subject1'], var_name='var', value_name='val')
+
+# Pivot the data
+df_pivoted = df_melted.pivot(index='Time', columns='var', values='val')
+
+# Rename the columns
+df_pivoted.columns = [c + '_' for c in df_pivoted.columns]
+
+times = df_pivoted.index
 
 y=['Subject13', 'Subject9', 'Subject6','Subject1']
-x1 = [20, 14, 69, 3]
-total = sum(x1)
-percentages1 = [(val/total)*100 for val in x1]
+
+
+
+# Set 'Time' column as the index
+df5 = df_pivoted.set_index(times)
+
+# Transpose the DataFrame
+df5 = df5.T
+
+times2 = df5.index
+
 
 fig = go.Figure()
 
+# # Create a horizontal bar graph
+
 fig.add_trace(go.Bar(
-    y= y,
-    x= x1,
+    y= times2,
+    x= df5['5h or Sooner'],
     name='5h or Sooner',
     orientation='h',
-    text=[f'{p:.2f}%' for p in percentages1],
+    text=[f"{val:.1f}%" for val in df5['5h or Sooner']],
     textposition='auto',
     marker=dict(
         color='rgba(246, 78, 139, 0.6)',
@@ -24,38 +61,26 @@ fig.add_trace(go.Bar(
 ))
 
 
-
-x2=[5,11,17,1]
-
-total = sum(x2)
-percentages2 = [(val/total)*100 for val in x2]
-
-
 fig.add_trace(go.Bar(
-    y=y,
-    x= x2,
+    y=times2,
+    x=df5['Between 5h and 10h'],
     name='Between 5h and 10h',
     orientation='h',
-    text=[f'{p:.2f}%' for p in percentages2],
+    text=[f"{val:.1f}%" for val in df5['Between 5h and 10h']],
     textposition='auto',
     marker=dict(
-        color='rgba(58, 71, 80, 0.6)',
+            color='rgba(58, 71, 80, 0.6)',
         line=dict(color='rgba(58, 71, 80, 1.0)', width=3)
     )
 ))
 
-x3=[17,14,5,0]
-
-total = sum(x3)
-percentages3 = [(val/total)*100 for val in x3]
-
 
 fig.add_trace(go.Bar(
-    y=y,
-    x=x3,
+    y=times2,
+    x=df5['Above 10h'],
     name='Above 10h',
     orientation='h',
-    text=[f'{p:.2f}%' for p in percentages3],
+    text=[f"{val:.1f}%" for val in df5['Above 10h']],
     textposition='auto',
     marker=dict(
         color='rgba(46, 78, 139, 0.6)',
@@ -63,19 +88,12 @@ fig.add_trace(go.Bar(
     )
 ))
 
-
-
-x4=[62,85,70,4]
-
-total = sum(x4)
-percentages4 = [(val/total)*100 for val in x4]
-
 fig.add_trace(go.Bar(
-    y=y,
-    x=x4,
+    y=times2,
+    x=df5['No Cytotoxicity'],
     name='No Cytotoxicity',
     orientation='h',
-    text=[f'{p:.2f}%' for p in percentages4],
+    text=[f"{val:.1f}%" for val in df5['No Cytotoxicity']],
     textposition='auto',
     marker=dict(
         color='teal',
@@ -83,11 +101,73 @@ fig.add_trace(go.Bar(
     )
 ))
 
+
+
 fig.update_layout(xaxis=dict(
     tickmode='linear',
-    dtick=5
+    dtick=10,
+    tickvals=[0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100]
+   
 ))
 
 fig.update_layout(barmode='stack')
 fig.show()
 
+
+
+# # Update the layout
+# fig.update_layout(
+#     title='Horizontal Bar Graph',
+#     xaxis_title='Values of Columns a,b,c,d',
+#     yaxis_title='Time'
+# )
+
+
+#fig.show()
+
+
+# fig.update_layout(
+#     xaxis=dict(
+#         tickmode='array',
+#         tickvals=[0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100],
+#         ticktext=['0%', '10%', '20%', '30%', '40%', '50%', '60%', '70%', '80%', '90%', '100%']
+#     )
+# )
+
+#fig.write_html("/Users/mravikumar/Desktop/timedeath.html")
+# import plotly.io as pio
+# pio.write_image(fig,"/Users/mravikumar/Desktop/timedeath.pdf")
+
+
+#table
+
+#****************************************************#
+import plotly.graph_objs as go
+import pandas as pd
+
+df3= pd.DataFrame({
+    'Subject13':[20, 5, 17,62],
+    'Subject9':[14,11,14,85],
+    'Subject6':[69,17,5,70],
+    'Subject1':[3,1,0,4],
+    'Time':['5h or Sooner', 'Between 5h and 10h', 'Above 10h','No Cytotoxicity']
+})
+
+df3_perc = df3.set_index('Time')
+df3_perc = (df3_perc.div(df3_perc.sum(axis=0), axis=1) * 100).reset_index()
+
+
+fig = go.Figure(data=[go.Table(
+    header=dict(values=list(df3_perc.columns),
+                fill_color='paleturquoise',
+                align='left'),
+    cells=dict(values=[df3_perc.Time, df3_perc.Subject13.round(2), df3_perc.Subject9.round(2), df3_perc.Subject6.round(2), df3_perc.Subject1.round(2)],
+               fill_color='lavender',
+               align='left'))
+])
+
+fig.show()
+# import plotly.io as pio
+# pio.write_image(fig,"/Users/mravikumar/Desktop/timedeathtable.pdf")
+
+#fig.write_html("/Users/mravikumar/Desktop/timedeathtable.html")
