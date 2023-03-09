@@ -1,0 +1,89 @@
+#cytokines
+import plotly.express as px
+
+data = dict(
+    x = [423, 351, 343, 150, 266],
+    Cytokines = ["IFNgamma", "IL17A", "CXCL10", "Double Secretors", "Triple Secretors"])
+# calculate percentage and values
+
+
+# create a pandas dataframe
+df = pd.DataFrame(data)
+
+# calculate the total
+total = df['x'].sum()
+
+# calculate the percentage for each value
+df['percentage'] = df['x'] / total * 100
+
+# assign custom colors to the stages
+colors = ['olive', 'teal', 'firebrick', 'darkslategrey', 'deepskyblue']
+
+
+# create the funnel chart
+fig = px.funnel(df, x='x', y='Cytokines', color='Cytokines', color_discrete_sequence=colors, 
+                text=['{} ({:.1f}%)'.format(val, pct) for val, pct in zip(df['Cytokines'], df['percentage'])])
+
+# add percentage and value in the chart
+fig.update_traces(textposition='inside')
+
+# show the chart
+fig.show()
+
+fig.write_html("/Users/mravikumar/Desktop/results_charts/cyto08.html")
+
+
+
+
+# total_08
+
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
+
+
+# First pie chart
+labels_b = ['Total_Pens_AutoB', 'Analysable_Pens_AutoB']
+values_b = [644, 238]
+colors_b = ['#FFCDD2', '#EF5350']
+
+fig1 = go.Figure(data=[go.Pie(labels=labels_b, values=values_b, pull=[0, 0.2], marker_colors=colors_b)])
+fig1.update_layout(title='AutoB')
+
+# Second pie chart
+labels_r = ['Total_Pens_RAJI', 'Analysable_Pens_RAJI']
+values_r = [630, 194]
+colors_r = ['#BBDEFB', '#2196F3']
+
+fig2 = go.Figure(data=[go.Pie(labels=labels_r, values=values_r, pull=[0, 0.2], marker_colors=colors_r)])
+fig2.update_layout(title='RAJI')
+
+
+# Subplot layout
+fig = make_subplots(rows=1, cols=2, specs=[[{'type':'pie'}, {'type':'pie'}]])
+
+# Add pie charts to subplot
+fig.add_trace(fig1.data[0], row=1, col=1)
+fig.add_trace(fig2.data[0], row=1, col=2)
+
+
+
+fig.show()
+
+fig.write_html("/Users/mravikumar/Desktop/results_charts/total08.html")
+
+
+import plotly.io as pio
+pio.write_image(fig,"/Users/mravikumar/Desktop/results_charts/total08.pdf")
+
+
+
+
+
+#sunburst08:
+
+
+
+
+
+
+
