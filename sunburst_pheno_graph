@@ -3,10 +3,10 @@ import pandas as pd
 import plotly.express as px
 import pandas as pd
 
-Phenotype = ["CD8+","CD8-","undetermined", "CD8+","CD8-","undetermined", "CD8+", "CD8-","undetermined","CD8+", "CD8-",]
-Killers=["fast_killers","fast_killers","fast_killers","medium_killers","medium_killers","medium_killers","slow_killers","slow_killers","slow_killers","No_Cytotoxicity","No_Cytotoxicity"]
-Sub=["Sub9", "Sub9", "Sub9", "Sub9", "Sub9","Sub9","Sub9","Sub9","Sub9","Sub9","Sub9"]
-Values=[2,5,62, 0, 1,16, 0, 0,5,9,5]
+Phenotype = ["CD8+","CD8-","undetermined", "CD8+","CD8-","undetermined", "CD8+", "CD8-","undetermined","CD8+", "CD8-","undetermined"]
+Killers=["fast_killers","fast_killers","fast_killers","medium_killers","medium_killers","medium_killers","slow_killers","slow_killers","slow_killers","No_Cytotoxicity","No_Cytotoxicity","No_Cytotoxicity"]
+Sub=["Sub1", "Sub1", "Sub1", "Sub1", "Sub1","Sub1","Sub1","Sub1","Sub1","Sub1","Sub1","Sub1"]
+Values=[1,1,1,0,1,0,0,0,0,1,3,0]
 
 
 df = pd.DataFrame(
@@ -33,15 +33,12 @@ fig = px.sunburst(df, path=['Sub', 'Killers', 'Phenotype'], values="Values",
                   color='Killers', color_discrete_sequence=px.colors.qualitative.Dark2,
                   hover_data={'values_pct_str': True})
 
-fig.update_traces(text=df['values_pct_str'])
+#fig.update_traces(text=df['values_pct_str'])
 
-fig.update_traces(textinfo='label+text', 
+fig.update_traces(textinfo='label+text+value', 
                    hovertemplate='<b>%{label}</b><br>' + 
                                 'Value: %{value}<br>' +
                                 'Percentage: %{customdata[0]}')
 fig.show()
 
-fig.write_html("/Users/mravikumar/Desktop/results_93633/final_phenotype46.html")
-
-import plotly.io as pio
-pio.write_image(fig,"/Users/mravikumar/Desktop/results_93633/final_phenotype46.pdf")
+fig.write_html("/Users/mravikumar/Desktop/results_charts/pheno32.html")
