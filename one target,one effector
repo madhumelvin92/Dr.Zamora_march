@@ -1,0 +1,51 @@
+import os
+import pandas as pd
+import numpy as np
+import shutil
+import glob
+path = "/Users/mravikumar/Desktop/93608"
+filenames = glob.glob( path + "/*.csv")
+#print('File names:', filenames)
+df4 = pd.DataFrame(columns=['PenId','TargetIndex', 'Cube', 'View','IsSelected','DiameterMicrons',
+                                   'MedianBrightness', 'MedianBackgroundBrightness', 'CentroidXMicrons', 
+                                   'CentroidYMicrons', 'TimeLapseIndex','cell_type'])
+for f in filenames:
+    df = pd.read_csv(f)
+    df2=df.drop(['DeviceId', 'TrackingId', 'TrackingIdPerPen','Objective', 'Label','PerimeterMicrons', 'AreaMicrons','Circularity', 'MajorAxisMicrons', 'MinorAxisMicrons','MeanBrightness', 'MaxBrightness', 'MinBrightness', 'BackgroundAreaMicrons','MeanBackgroundBrightness', 'MaxBackgroundBrightness', 'MinBackgroundBrightness','CentroidXPixels', 'CentroidYPixels', 'CentroidXMicronsPenRelative', 'CentroidYMicronsPenRelative','GatePath', 'FluidChannelNumber','GatePath','FluidChannelNumber','Timestamp','CellCount','CellsInPen', 'TargetsInPen'],axis=1)
+    df4 = pd.concat([df4,df2],axis=0)
+df4 = df4.assign(delta_MedianBrightness= df4['MedianBrightness'] - df4['MedianBackgroundBrightness'])
+conditions = [((df4['delta_MedianBrightness'] > 1000) & (df4['Cube'] == "FITC")),((df4['delta_MedianBrightness'] < 1500) & (df4['Cube'] == "FITC"))]
+values=['Target','Effector']
+df4['cell_type']= np.select(conditions,values)
+
+df5= df4.loc[df4['IsSelected']!= False]
+df6= df5.loc[df5['Cube']== 'FITC']
+df7= df6.loc[df6['TimeLapseIndex']== 0]
+df8 = df7.filter(['PenId', 'cell_type'], axis=1)
+#print(df8)
+
+z = df8.groupby(['PenId']).size().to_dict()
+y = [k for k, v in z.items() if v == 2]
+#print(y)
+
+df9 = df8[df8['PenId'].isin(y)]
+
+df9_grouped = df9.groupby('PenId')['cell_type'].apply(set)
+r = df9_grouped[df9_grouped.apply(lambda x: len(x) == 2)].index.tolist()
+
+
+
+Penlist = pd.read_csv("/Users/mravikumar/Desktop/singlecells_93608.csv")
+q = Penlist["single Tcell& APC"].tolist()
+
+
+#df6.to_csv('/Users/mravikumar/Desktop/try1df6_93608.csv')
+
+set_r = set(r)
+set_q = set(q)
+
+only_in_r = set_r.difference(set_q)
+only_in_q = set_q.difference(set_r)
+
+print("Numbers only in list from code:", only_in_r)
+print("Numbers only in list from images:", only_in_q)
