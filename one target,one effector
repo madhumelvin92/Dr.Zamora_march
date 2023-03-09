@@ -49,3 +49,45 @@ only_in_q = set_q.difference(set_r)
 
 print("Numbers only in list from code:", only_in_r)
 print("Numbers only in list from images:", only_in_q)
+
+
+#getting from excel sheets
+
+# import pandas library
+import pandas as pd
+
+# create the DataFrame
+df1 = pd.read_csv("/Users/mravikumar/Desktop/single_08/D93608_CellCountResults_2023-01-24_20-22-40.318_Targets.csv")
+
+df2= pd.read_csv("/Users/mravikumar/Desktop/Single_08/D93608_CellCountResults_2023-01-24_20-22-40.073_T_cell.csv")
+
+
+
+df3= df1.filter(['Pen_Id','Cell_Count_Verified'], axis=1)
+df3 = df3.reset_index()
+dfT=df3.loc[df3['Cell_Count_Verified'] == 1]
+dfT
+
+df4= df2.filter(['Pen_Id','Cell_Count_Verified'], axis=1)
+df4 = df4.reset_index()
+dfE=df4.loc[df4['Cell_Count_Verified'] == 1]
+#dfE2=df4.loc[df4['Cell_Count_Verified'] == 2]
+
+dfE
+
+df1TE = pd.merge(dfT, dfE, on=['Pen_Id','Cell_Count_Verified'], how='inner')
+#df2TE = pd.merge(dfT, dfE2, on=['Pen_Id'], how='inner')
+
+df1TE
+
+TE1= df1TE['Pen_Id'].values.tolist()
+
+
+#T2E= df2TE['Pen_Id'].values.tolist()
+
+len(TE1)
+#len(T2E)
+
+TE1
+
+
