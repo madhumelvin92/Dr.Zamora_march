@@ -1,0 +1,47 @@
+import plotly.graph_objects as go
+import pandas as pd
+import plotly.express as px
+import pandas as pd
+
+Phenotype = ["CD8+","CD8-","undetermined", "CD8+","CD8-","undetermined", "CD8+", "CD8-","undetermined","CD8+", "CD8-",]
+Killers=["fast_killers","fast_killers","fast_killers","medium_killers","medium_killers","medium_killers","slow_killers","slow_killers","slow_killers","No_Cytotoxicity","No_Cytotoxicity"]
+Sub=["Sub9", "Sub9", "Sub9", "Sub9", "Sub9","Sub9","Sub9","Sub9","Sub9","Sub9","Sub9"]
+Values=[2,5,62, 0, 1,16, 0, 0,5,9,5]
+
+
+df = pd.DataFrame(
+    dict(Phenotype=Phenotype, Killers=Killers, Sub=Sub, Values=Values)
+)
+
+
+#calculate percentage of each vendor's sales out of the total for each sector
+for killer in df["Killers"].unique():
+    killer_df = df[df["Killers"] == killer]
+    total_values = killer_df["Values"].sum()
+    killer_df["values_pct"] = killer_df["Values"] / total_values * 100
+    killer_df["values_pct_str"] = killer_df["values_pct"].round(2).astype(str) + '%'
+    df.loc[killer_df.index, "values_pct"] = killer_df["values_pct"]
+    df.loc[killer_df.index,"values_pct_str"] = killer_df["values_pct_str"]
+    
+
+# fig = px.sunburst(df, path=['Sub', 'Killers', 'Phenotype'], values="Values",
+#                   color='Killers', color_discrete_sequence=px.colors.qualitative.Dark2, names='Killers', 
+#                   hover_data={'values_pct':':.2f', 'values_pct_str': False})
+
+
+fig = px.sunburst(df, path=['Sub', 'Killers', 'Phenotype'], values="Values",
+                  color='Killers', color_discrete_sequence=px.colors.qualitative.Dark2,
+                  hover_data={'values_pct_str': True})
+
+fig.update_traces(text=df['values_pct_str'])
+
+fig.update_traces(textinfo='label+text', 
+                   hovertemplate='<b>%{label}</b><br>' + 
+                                'Value: %{value}<br>' +
+                                'Percentage: %{customdata[0]}')
+fig.show()
+
+fig.write_html("/Users/mravikumar/Desktop/results_93633/final_phenotype46.html")
+
+import plotly.io as pio
+pio.write_image(fig,"/Users/mravikumar/Desktop/results_93633/final_phenotype46.pdf")
